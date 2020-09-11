@@ -4,6 +4,7 @@ import {
   getModuleDic,
   getObjectDic,
   getStandardsDic,
+  getMangerClass,
 } from '@/services/service';
 import styles from './standardconfig.less';
 import { Form, Button, Select, Row, Col, Input, message } from 'antd';
@@ -13,9 +14,14 @@ const SearchSubUnit = props => {
   const [moduleEntry, setModuleEntry] = useState([]); // 模块select
   const [objectEntry, setObjectEntry] = useState([]); // 项目select
   const [standardEntry, setStandardEntry] = useState([]); // 项目select
+  const [classEntry, setClassEntry] = useState([]); // 班级select
   const [form] = Form.useForm();
-
-  //获取所有字典项
+  const statusRead = [
+    { statusCode: 12, name: '待审批' },
+    { statusCode: 13, name: '审批不通过' },
+    { statusCode: 14, name: '审批通过' },
+  ];
+  //获取字典项
   const getSelectSum = () => {
     //模块字典
     getModuleDic().then(res => {
@@ -23,6 +29,16 @@ const SearchSubUnit = props => {
         setModuleEntry(res.data.list);
       } else {
         message.error('获取模块字典失败');
+      }
+    });
+    //获取班级
+    getMangerClass().then(res => {
+      console.log(res);
+      if (res.status === 200) {
+        setClassEntry(res.data.Classes);
+        // setClassEntry
+      } else {
+        message.error('获取班级字典失败');
       }
     });
   };
@@ -77,53 +93,54 @@ const SearchSubUnit = props => {
         name="horizontal_login"
         layout="inline"
         onFinish={onSearch}
-      > <Row gutter={24}>
+      >
+        {' '}
+        <Row gutter={24}>
           <Col span={6}>
-            <Form.Item name="ModuleCode" label="班级：">
+            <Form.Item name="ClassCode" label="班级：">
               <Select
                 onChange={moduleChange}
                 placeholder="请选择"
                 className={styles.selecton}
               >
-                {moduleEntry &&
-                  moduleEntry.length > 0 &&
-                  moduleEntry.map(i => (
-                    <Option value={i.code} key={i.code}>
-                      {i.code_name}
+                {classEntry &&
+                  classEntry.length > 0 &&
+                  classEntry.map(i => (
+                    <Option value={i.ClassCode} key={i.ClassCode}>
+                      {i.ClassName}
                     </Option>
                   ))}
               </Select>
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item name="ModuleCode" label="学号：">
-              <Input className={styles.inputSearch} placeholder='请输入' />
+            <Form.Item name="StuUserCode" label="学号：">
+              <Input className={styles.inputSearch} placeholder="请输入" />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item name="ModuleCode" label="姓名：">
-              <Input className={styles.inputSearch} placeholder='请输入' />
+            <Form.Item name="StuName" label="姓名：">
+              <Input className={styles.inputSearch} placeholder="请输入" />
             </Form.Item>
           </Col>
           <Col span={6}>
-            <Form.Item name="ModuleCode" label="状态：">
+            <Form.Item name="ApprovalStatus" label="状态：">
               <Select
                 onChange={moduleChange}
                 placeholder="请选择"
                 className={styles.selecton}
               >
-                {moduleEntry &&
-                  moduleEntry.length > 0 &&
-                  moduleEntry.map(i => (
-                    <Option value={i.code} key={i.code}>
-                      {i.code_name}
+                {statusRead &&
+                  statusRead.length > 0 &&
+                  statusRead.map(i => (
+                    <Option value={i.statusCode} key={i.statusCode}>
+                      {i.name}
                     </Option>
                   ))}
               </Select>
             </Form.Item>
           </Col>
         </Row>
-
         <Row className={styles.rowGrids} gutter={24}>
           <Col span={6}>
             <Form.Item name="ModuleCode" label="模块：">
@@ -180,7 +197,6 @@ const SearchSubUnit = props => {
               重置
             </Button>
           </Col>
-
         </Row>
       </Form>
     </div>

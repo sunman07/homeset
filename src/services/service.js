@@ -3,11 +3,38 @@ import { stringify } from 'qs';
 const baseUrl = '/apartment';
 const baseLink = '/secondclassroom';
 
-//获取列表
-export const getMainEntry =  params => {
-  return axios.get(baseLink + `/api/v1/scoreapprove/queryscoreapprove?ApprovalStatus=${params.ApprovalStatus}&Page=${params.Page}&PageCount=${params.PageCount}&ClassCode=${params.ClassCode}&StuUserCode=${params.StuUserCode}&StuName=${params.StuName}&ModuleCode=${params.ModuleCode}&ItemCode=${params.ItemCode}&StandardCode=${params.StandardCode}`).then(res => {
+//获取主列表
+export const getMainEntry = params => {
+  return axios
+    .get(
+      baseLink +
+        `/api/v1/scoreapprove/queryscoreapprove?ApprovalStatus=${
+          params.ApprovalStatus
+        }&Page=${params.Page}&PageCount=${
+          params.PageCount
+        }&ClassCode=${params.ClassCode ||
+          ''}&StuUserCode=${params.StuUserCode ||
+          ''}&StuName=${params.StuName || ''}&ModuleCode=${params.ModuleCode ||
+          ''}&ItemCode=${params.ItemCode ||
+          ''}&StandardCode=${params.StandardCode || ''}`,
+    )
+    .then(res => {
+      return res;
+    });
+};
+//获取责任班级
+export const getMangerClass = () => {
+  return axios.get(`/core/api/v1/user/staffroledept?RoleGroup=3`).then(res => {
     return res;
   });
+};
+//审批成绩
+export const getApproveScore = params => {
+  return axios
+    .post(baseLink + `/api/v1/scoreapprove/approvescore`, params)
+    .then(res => {
+      return res;
+    });
 };
 // 获取年级
 export const getGrade = query => {

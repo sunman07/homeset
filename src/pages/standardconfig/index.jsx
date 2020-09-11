@@ -3,6 +3,7 @@ import {
   Button,
   Select,
   Layout,
+  Form,
   Row,
   Col,
   Popover,
@@ -11,18 +12,20 @@ import {
   Divider,
   Input,
   Modal,
+  message,
 } from 'antd';
-import { getConfigEntry,getMainEntry} from '@/services/service';
+import {
+  getConfigEntry,
+  getMainEntry,
+  getApproveScore,
+} from '@/services/service';
 import moment from 'moment';
 import styles from './standardconfig.less';
 import classNames from 'classnames';
 import HeaderGroup from '@/components/Header';
 import SearchSubUnit from './searchform';
 import MainContent from './maincontent';
-import CreditExchange from './creditexchange';
-import ProjectMaintenance from './maintenance';
-import ModuleMaintenance from './modulemain';
-import AddOrEditContent from './addwithedit';
+import DetailsSubUnit from './detailsdisplay';
 
 const { Option } = Select;
 const { Header, Content } = Layout;
@@ -31,66 +34,65 @@ const StandardConfigSecondary = () => {
   const [configEntry, setConfigEntry] = useState([]);
   const [paramsOfEntry, setParamsOfEntry] = useState({
     Page: 1,
-    PageCount: 20,
-    ApprovalStatus:12,
+    PageCount: 10,
+    ApprovalStatus: 12,
   });
   // 表格条目总数
   const [mainTotal, setMainTotal] = useState(Number);
-  // 积分兑换显示隐藏 pointVisible
-  const [pointVisible, setPointVisible] = useState(false);
-  //项目显示隐藏
-  const [objectVisible, setObjectVisible] = useState(false);
-  //模块显示隐藏
-  const [moduleVisible, setModuleVisible] = useState(false);
-  //添加编辑标准显示隐藏
-  const [editOrEditVisible, setEditOrEditVisible] = useState(false);
-
-  //传递编辑
-  const [transferEdits, setTransferEdits] = useState(Object);
-  //判断编辑还是新增 设置标题
-  const judgeForEditTitle =
-    JSON.stringify(transferEdits) !== '{}' ? '编辑标准' : '新增标准';
-
   const [mainloading, setMainloading] = useState(false);
-  const changeEditStatus = () => {
-    setEditOrEditVisible(false);
+  //查看详情
+  const [checkDetails, setCheckDetails] = useState(false);
+  //传递详情数据至detailsdisplay
+  const [infoDetails, setInfoDetails] = useState(Object);
+  //显示详情弹框
+  const [uncheckedDetails, setUncheckedDetails] = useState(false);
+  const [form] = Form.useForm();
+  const openDetails = values => {
+    setInfoDetails(values);
+    setCheckDetails(true);
   };
-  const openOrEditStatus = () => {
-    setTransferEdits({});
-    setEditOrEditVisible(true);
+  const closeDetails = () => {
+    setCheckDetails(false);
+    setInfoDetails('');
   };
 
-  const onModuleClose = () => {
-    setModuleVisible(false);
+  //提交审批请求 getApproveScore
+  const scoreApproveForm = params => {
+    getApproveScore(params).then(res => {
+      console.log(res);
+      if (res.status === 200 && res.data.Msg === '操作成功') {
+        setUncheckedDetails(false);
+        setTimeout(() => {
+          setCheckDetails(false);
+        }, 500);
+        message.success(res.data.Msg);
+      } else {
+        message.error(res.data.Msg);
+      }
+    });
   };
 
-  const onObjectClose = () => {
-    setObjectVisible(false);
-  };
-
+  //搜索表单提交
   const onFinish = values => {
+    console.log(values);
+    delete paramsOfEntry.ApprovalStatus;
     let searchValues = Object.assign(values, paramsOfEntry);
     setParamsOfEntry(searchValues);
   };
 
-  const getEditItem = record => {
-    console.log(record);
-    setTransferEdits(record);
-    setEditOrEditVisible(true);
-  };
-  //获取子组件方法
-  const scoreForExchange = useRef(null);
-  const editForContent = useRef(null);
-  const onCredit = values => {
-    //引用子组件方法
-    scoreForExchange.current.onFinish();
+  // 表单重置
+  const onReset = () => {
+    pageForContent.current.subPageChange(1);
+    setParamsOfEntry({
+      Page: 1,
+      PageCount: 10,
+      ApprovalStatus: 12,
+    });
   };
 
-  const onStandardOk = values => {
-    //引用子组件方法
-    editForContent.current.onFinish();
-    onReset();
-  };
+  //获取子组件方法
+  const pageForContent = useRef(null);
+  const formRef = useRef(null);
   //分页
   const onPageChange = values => {
     let copyOfEntry = {
@@ -99,38 +101,12 @@ const StandardConfigSecondary = () => {
     copyOfEntry.Page = values;
     setParamsOfEntry(copyOfEntry);
   };
-  // 表单重置
-  const onReset = () => {
-    setParamsOfEntry({
-      Page: 1,
-      PageCount: 20,
-      ApprovalStatus:12,
-    });
-  };
-  //获取标准列表
+
+  //获取主列表 传入子组件
   const getConfigForStandard = () => {
     setMainloading(true);
- 
+    setConfigEntry([]);
     getMainEntry(paramsOfEntry).then(res => {
-      console.log(paramsOfEntry,res)
-      setConfigEntry([{code:'12311'},{code:'122123'},{code:'22123'}]);
-      if (res.status == 200) {
-        setMainloading(false);
-        let index = 0;
-        setMainTotal(res.data.Total);
-        res.data.List &&
-          res.data.List.forEach(item => {
-            index++;
-            item.key = index;
-            item.StartDate = moment(item.StartDate).format(
-              'YYYY-MM-DD HH:mm:ss',
-            );
-          });
-       // setConfigEntry(res.data.List);
-      }
-    });
-
-/*     getConfigEntry(paramsOfEntry).then(res => {
       if (res.status == 200) {
         setMainloading(false);
         let index = 0;
@@ -145,22 +121,41 @@ const StandardConfigSecondary = () => {
           });
         setConfigEntry(res.data.List);
       }
-    }); */
+    });
   };
 
-  //如果切换了select 弹出抽屉
-  const selectDrawer = value => {
-    if (value === '学分兑换') {
-      setPointVisible(true);
-    } else if (value === '项目维护') {
-      setObjectVisible(true);
-    } else if (value === '模块维护') {
-      setModuleVisible(true);
-    }
+  const unApprove = value => {
+    setUncheckedDetails(true);
+  };
+  const doApprove = value => {
+    console.log(value);
+    const params = {
+      RecordId: [value],
+      RejectReason: '',
+      ApprovalStatus: 14,
+    };
+    scoreApproveForm(params);
+    onReset();
   };
 
-  const onPointClose = () => {
-    setPointVisible(false);
+  const closeOptions = () => {
+    setUncheckedDetails(false);
+  };
+
+  const onSubmit = values => {
+    console.log('Success:', values, infoDetails.RecordId);
+    const params = {
+      RecordId: [infoDetails.RecordId],
+      ...values,
+      ApprovalStatus: 13,
+    };
+    scoreApproveForm(params);
+    onReset();
+  };
+
+  const rejectReason = () => {
+    //引用form的onSubmit事件(上面)
+    formRef.current.submit();
   };
 
   useEffect(() => {
@@ -177,100 +172,62 @@ const StandardConfigSecondary = () => {
           </Header>
           <SearchSubUnit onSearch={onFinish} onReset={onReset} />
           <Content className={classNames(styles.contentMain)}>
-            <Row>
-              <Col span={24} className={styles.rightControl}>
-                <Select style={{ width: 110 }} onChange={selectDrawer} value="">
-                  <Option value="模块维护">模块维护</Option>
-                  <Option value="项目维护">项目维护</Option>
-                  <Option value="学分兑换">学分兑换</Option>
-                </Select>{' '}
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    openOrEditStatus();
-                  }}
-                >
-                  新增标准
-                </Button>
-              </Col>
-            </Row>
             <MainContent
               className={styles.tablePeri}
-              getEditItem={getEditItem}
               mainloading={mainloading}
+              openDetails={openDetails}
+              onReset={onReset}
+              ref={pageForContent}
               mainData={configEntry}
               pageTotal={mainTotal}
               pageChange={onPageChange}
             />
           </Content>
-          <Drawer
-            getContainer={false}
-            title="学分兑换"
-            placement="right"
-            width="50%"
-            closable={true}
+          <Modal
+            title="查看详情"
+            visible={checkDetails}
+            onCancel={closeDetails}
             destroyOnClose={true}
-            onClose={onPointClose}
-            visible={pointVisible}
             footer={
-              <div
-                style={{
-                  textAlign: 'right',
-                }}
-              >
-                <Button onClick={onPointClose} style={{ marginRight: 8 }}>
-                  取消
+              <div>
+                <Button
+                  onClick={() => {
+                    unApprove(infoDetails.RecordId);
+                  }}
+                  className={styles.buttonApprove}
+                  htmlType="button"
+                >
+                  审批不通过
                 </Button>
-                <Button onClick={onCredit} type="primary">
-                  确定
+                <Button
+                  onClick={() => {
+                    doApprove(infoDetails.RecordId);
+                  }}
+                  type="primary"
+                >
+                  审批通过
                 </Button>
               </div>
             }
           >
-            <CreditExchange
-              onCredit={onCredit}
-              onPointClose={onPointClose}
-              ref={scoreForExchange}
-            />
-          </Drawer>
-          <Drawer
-            getContainer={false}
-            title="项目维护"
-            placement="right"
-            width="50%"
-            closable={true}
-            destroyOnClose={true}
-            onClose={onObjectClose}
-            visible={objectVisible}
-          >
-            <ProjectMaintenance />
-          </Drawer>
-          {/* ModuleMaintenance */}
-          <Drawer
-            getContainer={false}
-            title="模块维护"
-            placement="right"
-            width="50%"
-            closable={true}
-            destroyOnClose={true}
-            onClose={onModuleClose}
-            visible={moduleVisible}
-          >
-            <ModuleMaintenance />
-          </Drawer>
+            <DetailsSubUnit infoDetails={infoDetails} />
+          </Modal>
           <Modal
-            title={judgeForEditTitle}
-            visible={editOrEditVisible}
-            onOk={onStandardOk}
-            onCancel={changeEditStatus}
+            title="审批不通过"
+            visible={uncheckedDetails}
+            onOk={rejectReason}
+            onCancel={closeOptions}
             destroyOnClose={true}
           >
-            <AddOrEditContent
-              className={styles.addWithEdit}
-              changeEditStatus={changeEditStatus}
-              transferEdits={transferEdits}
-              ref={editForContent}
-            />
+            <Form name="Reject" ref={formRef} onFinish={onSubmit}>
+              <Form.Item
+                label="驳回原因"
+                name="RejectReason"
+                rules={[{ required: true, message: '请输入驳回原因' }]}
+              >
+                <Input />
+              </Form.Item>
+            </Form>
           </Modal>
         </Layout>
       </Fragment>

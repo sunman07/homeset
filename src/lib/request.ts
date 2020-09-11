@@ -6,7 +6,7 @@ axios.interceptors.request.use(
     // 在发送请求之前做些什么
     console.debug('发出请求');
     config.headers.AccessToken =
-      window['__AppWebkey'] || '077VAVJ1NXYFHCP3VT_-AA';
+      window['__AppWebkey'] || 'LYGVWWYIPUCG4O3ET17PKG';
     return config;
   },
   function(error) {
